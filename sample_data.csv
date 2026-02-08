@@ -1,0 +1,16 @@
+timestamp,source_ip,url
+2024-01-15 10:30:45,192.168.1.100,/index.php?id=1
+2024-01-15 10:31:12,192.168.1.101,/login.php?user=admin&pass=password
+2024-01-15 10:32:05,10.0.0.50,/search?q=test
+2024-01-15 10:33:20,192.168.1.102,/page.php?id=1' OR '1'='1
+2024-01-15 10:34:15,172.16.0.10,/api/user?id=1; DROP TABLE users--
+2024-01-15 10:35:30,192.168.1.103,/script.php?name=<script>alert('XSS')</script>
+2024-01-15 10:36:45,10.0.0.51,/view?file=../../../etc/passwd
+2024-01-15 10:37:20,192.168.1.104,/download?file=../../../../windows/system32/config/sam
+2024-01-15 10:38:10,172.16.0.11,/execute?cmd=; ls -la
+2024-01-15 10:39:25,192.168.1.105,/api/fetch?url=http://127.0.0.1/admin
+2024-01-15 10:40:50,10.0.0.52,/test?input=javascript:alert(document.cookie)
+2024-01-15 10:41:15,192.168.1.106,/search?q=test UNION SELECT * FROM users
+2024-01-15 10:42:30,172.16.0.12,/upload?path=../../../../var/www/html/shell.php
+2024-01-15 10:43:05,192.168.1.107,/page?id=1' AND 1=1--
+2024-01-15 10:44:20,10.0.0.53,/api?data=<svg onload=alert(1)>
