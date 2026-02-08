@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 function EventsTable({ detections, loading, filters, onFilterChange }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
@@ -40,7 +41,7 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
       if (filters.attackType) params.append('attack_type', filters.attackType);
       if (filters.sourceIp) params.append('source_ip', filters.sourceIp);
 
-      const url = `/api/export/${format}?${params.toString()}`;
+      const url = `${API_BASE_URL}/export/${format}?${params.toString()}`;
       
       if (format === 'csv') {
         const response = await fetch(url);
@@ -140,7 +141,7 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
         {(filters.attackType || filters.sourceIp) && (
           <button
             className="btn"
-            onClick={() => handleFilterChange({ attackType: '', sourceIp: '' })}
+            onClick={() => onFilterChange({ attackType: '', sourceIp: '' })}
             style={{ backgroundColor: '#6c757d', color: 'white' }}
           >
             Clear Filters
@@ -181,6 +182,7 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
                 >
                   Severity {sortConfig.key === 'severity' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Confidence</th>
                 <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Timestamp</th>
               </tr>
             </thead>
@@ -205,6 +207,9 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
                     >
                       {detection.severity}
                     </span>
+                  </td>
+                  <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
+                    {detection.confidence_score != null ? `${detection.confidence_score}%` : '—'}
                   </td>
                   <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
                     {detection.timestamp || detection.detected_at || 'N/A'}

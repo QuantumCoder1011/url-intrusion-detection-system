@@ -21,7 +21,9 @@ ChartJS.register(
   Title
 );
 
-function Dashboard({ statistics, loading }) {
+const CHART_HEIGHT = 220;
+
+function Dashboard({ statistics, fileHistory, loading }) {
   if (loading) {
     return (
       <div className="card">
@@ -91,13 +93,30 @@ function Dashboard({ statistics, loading }) {
     ]
   };
 
+  const topIPs = statistics.top_source_ips || [];
+  const topIPsData = {
+    labels: topIPs.map((item) => item.ip),
+    datasets: [{
+      label: 'Number of Attacks',
+      data: topIPs.map((item) => item.count),
+      backgroundColor: '#667eea',
+      borderColor: '#5a67d8',
+      borderWidth: 2,
+    }],
+  };
+
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: true,
-    plugins: {
-      legend: {
-        position: 'bottom'
-      }
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+  };
+
+  const formatUploadTime = (iso) => {
+    if (!iso) return 'N/A';
+    try {
+      return new Date(iso).toLocaleString();
+    } catch {
+      return iso;
     }
   };
 
@@ -105,64 +124,85 @@ function Dashboard({ statistics, loading }) {
     <div>
       <div className="card">
         <div className="card-title">Summary Statistics</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
-          <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#667eea' }}>
-              {statistics.total_detections || 0}
-            </div>
-            <div style={{ color: '#666', marginTop: '5px' }}>Total Detections</div>
+        <div className="stats-grid">
+          <div className="stat-box">
+            <div className="stat-value stat-total">{statistics.total_detections || 0}</div>
+            <div className="stat-label">Total Detections</div>
           </div>
-          <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#f44336' }}>
-              {Object.keys(statistics.by_attack_type || {}).length}
-            </div>
-            <div style={{ color: '#666', marginTop: '5px' }}>Attack Types</div>
+          <div className="stat-box">
+            <div className="stat-value stat-types">{Object.keys(statistics.by_attack_type || {}).length}</div>
+            <div className="stat-label">Attack Types</div>
           </div>
-          <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#ff9800' }}>
-              {statistics.top_source_ips?.length || 0}
-            </div>
-            <div style={{ color: '#666', marginTop: '5px' }}>Unique Source IPs</div>
+          <div className="stat-box">
+            <div className="stat-value stat-ips">{topIPs.length}</div>
+            <div className="stat-label">Unique Source IPs</div>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '20px' }}>
-        <div className="card">
+      <div className="charts-row">
+        <div className="card chart-card">
           <div className="card-title">Detections by Attack Type</div>
-          {Object.keys(statistics.by_attack_type || {}).length > 0 ? (
-            <Pie data={attackTypesData} options={chartOptions} />
-          ) : (
-            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>No data available</p>
-          )}
+          <div className="chart-container" style={{ height: CHART_HEIGHT }}>
+            {Object.keys(statistics.by_attack_type || {}).length > 0 ? (
+              <Pie data={attackTypesData} options={chartOptions} />
+            ) : (
+              <p className="chart-empty">No data available</p>
+            )}
+          </div>
         </div>
-
-        <div className="card">
+        <div className="card chart-card">
           <div className="card-title">Detections by Severity</div>
-          {Object.keys(statistics.by_severity || {}).length > 0 ? (
-            <Bar data={severityData} options={chartOptions} />
-          ) : (
-            <p style={{ textAlign: 'center', color: '#666', padding: '20px' }}>No data available</p>
-          )}
+          <div className="chart-container" style={{ height: CHART_HEIGHT }}>
+            {Object.keys(statistics.by_severity || {}).length > 0 ? (
+              <Bar data={severityData} options={chartOptions} />
+            ) : (
+              <p className="chart-empty">No data available</p>
+            )}
+          </div>
         </div>
       </div>
 
-      {statistics.top_source_ips && statistics.top_source_ips.length > 0 && (
+      {topIPs.length > 0 && (
+        <div className="card chart-card">
+          <div className="card-title">Top Attacking IPs</div>
+          <div className="chart-container" style={{ height: CHART_HEIGHT }}>
+            <Bar
+              data={topIPsData}
+              options={{
+                ...chartOptions,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: { beginAtZero: true, title: { display: true, text: 'Number of Attacks' } },
+                  y: { title: { display: true, text: 'IP Address' } },
+                },
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {fileHistory && fileHistory.length > 0 && (
         <div className="card">
-          <div className="card-title">Top Source IPs</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div className="card-title">File Analysis History</div>
+          <div className="table-wrap">
+            <table className="data-table">
               <thead>
-                <tr style={{ backgroundColor: '#f8f9fa' }}>
-                  <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Source IP</th>
-                  <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #ddd' }}>Detections</th>
+                <tr>
+                  <th>File Name</th>
+                  <th>Type</th>
+                  <th>Upload Time</th>
+                  <th>Attacks Detected</th>
                 </tr>
               </thead>
               <tbody>
-                {statistics.top_source_ips.map((item, index) => (
-                  <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                    <td style={{ padding: '10px' }}>{item.ip}</td>
-                    <td style={{ padding: '10px', textAlign: 'right' }}>{item.count}</td>
+                {fileHistory.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.file_name}</td>
+                    <td>{row.file_type}</td>
+                    <td>{formatUploadTime(row.upload_time)}</td>
+                    <td>{row.total_attacks_detected}</td>
                   </tr>
                 ))}
               </tbody>

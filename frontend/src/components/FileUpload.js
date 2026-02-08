@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 function FileUpload({ onUpload }) {
   const [file, setFile] = useState(null);
@@ -24,7 +25,7 @@ function FileUpload({ onUpload }) {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('/api/upload', formData, {
+      const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

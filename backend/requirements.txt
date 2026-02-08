@@ -3,3 +3,4 @@ Flask-CORS==4.0.0
 pandas==2.1.4
 scapy==2.5.0
 python-dotenv==1.0.0
+gunicorn==21.2.0

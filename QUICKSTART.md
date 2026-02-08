@@ -74,7 +74,7 @@ The browser should automatically open to `http://localhost:3000`
 
 - Create your own CSV files with URL data
 - Test with PCAP files (network captures)
-- Customize detection patterns in `backend/detection_engine.py`
+- Customize detection patterns in `backend/patterns.py` and `backend/detector.py`
 - Extend the dashboard with additional visualizations
 
 ## Sample CSV Format

@@ -5,7 +5,7 @@ A full-stack web application for detecting malicious URLs in web traffic using p
 ## Features
 
 - **Multi-format Support**: Analyze CSV log files and PCAP network captures
-- **Comprehensive Detection**: Detects SQL Injection, XSS, Directory Traversal, Command Injection, SSRF, and more
+- **Comprehensive Detection**: Command Injection, Directory Traversal, XSS, SQL Injection (priority-based, one detection per URL)
 - **Interactive Dashboard**: Real-time visualization of detected threats with charts and statistics
 - **Filtering & Export**: Filter detections by attack type and source IP, export results to CSV/JSON
 - **Modern UI**: Built with React.js and Chart.js for an intuitive user experience
@@ -30,7 +30,8 @@ A full-stack web application for detecting malicious URLs in web traffic using p
 .
 ├── backend/
 │   ├── app.py                 # Flask application and API endpoints
-│   ├── detection_engine.py    # Core detection logic with regex patterns
+│   ├── patterns.py            # Attack regex patterns
+│   ├── detector.py            # Priority-based URL detector (one result per URL)
 │   ├── data_ingestion.py      # CSV and PCAP file processing
 │   ├── database.py            # SQLite database operations
 │   ├── requirements.txt       # Python dependencies
@@ -148,7 +149,7 @@ The frontend will start on `http://localhost:3000` and automatically open in you
 ## Development
 
 ### Backend Development
-- The detection patterns can be extended in `detection_engine.py`
+- The detection patterns can be extended in `patterns.py` and `detector.py`
 - New file formats can be added in `data_ingestion.py`
 
 ### Frontend Development

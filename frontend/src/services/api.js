@@ -1,28 +1,32 @@
 import axios from 'axios';
 
-// Use relative URL so the dev server proxy (see package.json) forwards to backend
-const API_BASE_URL = '/api';
+export const API_BASE_URL = process.env.REACT_APP_API_URL
+  ? process.env.REACT_APP_API_URL.replace(/\/$/, '') + '/api'
+  : '/api';
 
 export const fetchDetections = async (attackType = '', sourceIp = '') => {
-  try {
-    const params = new URLSearchParams();
-    if (attackType) params.append('attack_type', attackType);
-    if (sourceIp) params.append('source_ip', sourceIp);
-
-    const response = await axios.get(`${API_BASE_URL}/detections?${params.toString()}`);
-    return response.data.detections || [];
-  } catch (error) {
-    console.error('Error fetching detections:', error);
-    throw error;
-  }
+  const params = new URLSearchParams();
+  if (attackType) params.append('attack_type', attackType);
+  if (sourceIp) params.append('source_ip', sourceIp);
+  const response = await axios.get(`${API_BASE_URL}/detections?${params.toString()}`);
+  return response.data.detections || [];
 };
 
 export const fetchStatistics = async () => {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/statistics`);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching statistics:', error);
-    throw error;
-  }
+  const response = await axios.get(`${API_BASE_URL}/statistics`);
+  return response.data;
+};
+
+export const fetchTopIPs = async () => {
+  const response = await axios.get(`${API_BASE_URL}/top-ips`);
+  return response.data.top_source_ips || [];
+};
+
+export const fetchFileHistory = async () => {
+  const response = await axios.get(`${API_BASE_URL}/file-history`);
+  return response.data.file_history || [];
+};
+
+export const clearDatabase = async () => {
+  await axios.post(`${API_BASE_URL}/clear-database`);
 };
