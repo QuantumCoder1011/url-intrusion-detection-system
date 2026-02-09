@@ -29,6 +29,7 @@ class Database:
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS detections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_analysis_id INTEGER,
                 url TEXT NOT NULL,
                 source_ip TEXT,
                 timestamp TEXT,
@@ -55,16 +56,19 @@ class Database:
         cols = [row[1] for row in cursor.fetchall()]
         if 'confidence_score' not in cols:
             cursor.execute("ALTER TABLE detections ADD COLUMN confidence_score INTEGER")
+        if 'file_analysis_id' not in cols:
+            cursor.execute("ALTER TABLE detections ADD COLUMN file_analysis_id INTEGER REFERENCES file_analysis(id)")
 
         conn.commit()
 
-    def insert_detection(self, detection: Dict):
+    def insert_detection(self, detection: Dict, file_analysis_id: Optional[int] = None):
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO detections (url, source_ip, timestamp, attack_type, severity, pattern_matched, confidence_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO detections (file_analysis_id, url, source_ip, timestamp, attack_type, severity, pattern_matched, confidence_score)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
+            file_analysis_id,
             detection.get('url', ''),
             detection.get('source_ip', 'Unknown'),
             detection.get('timestamp', ''),
@@ -75,7 +79,8 @@ class Database:
         ))
         conn.commit()
 
-    def insert_file_analysis(self, file_name: str, file_type: str, total_attacks: int):
+    def insert_file_analysis(self, file_name: str, file_type: str, total_attacks: int) -> int:
+        """Insert file analysis record and return its id for linking detections."""
         conn = self.get_connection()
         cursor = conn.cursor()
         cursor.execute('''
@@ -83,8 +88,10 @@ class Database:
             VALUES (?, ?, ?, ?)
         ''', (file_name, file_type, datetime.utcnow().isoformat() + 'Z', total_attacks))
         conn.commit()
+        return cursor.lastrowid
 
-    def get_detections(self, attack_type: Optional[str] = None, source_ip: Optional[str] = None) -> List[Dict]:
+    def get_detections(self, attack_type: Optional[str] = None, source_ip: Optional[str] = None,
+                       file_id: Optional[int] = None, severity: Optional[str] = None) -> List[Dict]:
         conn = self.get_connection()
         cursor = conn.cursor()
         query = 'SELECT * FROM detections WHERE 1=1'
@@ -95,6 +102,12 @@ class Database:
         if source_ip:
             query += ' AND source_ip = ?'
             params.append(source_ip)
+        if file_id is not None:
+            query += ' AND file_analysis_id = ?'
+            params.append(file_id)
+        if severity:
+            query += ' AND severity = ?'
+            params.append(severity)
         query += ' ORDER BY detected_at DESC'
         cursor.execute(query, params)
         rows = cursor.fetchall()
@@ -118,30 +131,57 @@ class Database:
             for row in cursor.fetchall()
         ]
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self, file_id: Optional[int] = None, severity: Optional[str] = None) -> Dict:
+        """Get detection statistics. If file_id or severity is set, filter accordingly."""
         conn = self.get_connection()
         cursor = conn.cursor()
+        conditions = []
+        params = []
+        if file_id is not None:
+            conditions.append('file_analysis_id = ?')
+            params.append(file_id)
+        if severity:
+            conditions.append('severity = ?')
+            params.append(severity)
+        where = 'WHERE ' + ' AND '.join(conditions) if conditions else ''
 
-        cursor.execute('SELECT COUNT(*) as total FROM detections')
+        cursor.execute(f'SELECT COUNT(*) as total FROM detections {where}', params)
         total = cursor.fetchone()['total']
 
-        cursor.execute('''
-            SELECT attack_type, COUNT(*) as count FROM detections
+        cursor.execute(f'''
+            SELECT attack_type, COUNT(*) as count FROM detections {where}
             GROUP BY attack_type ORDER BY count DESC
-        ''')
+        ''', params)
         by_attack_type = {row['attack_type']: row['count'] for row in cursor.fetchall()}
 
-        cursor.execute('''
-            SELECT severity, COUNT(*) as count FROM detections
-            GROUP BY severity ORDER BY count DESC
-        ''')
-        by_severity = {row['severity']: row['count'] for row in cursor.fetchall()}
+        # Severity order: High, Medium, Low (High = highest severity; Low = lowest/informational)
+        cursor.execute(f'''
+            SELECT severity, COUNT(*) as count FROM detections {where}
+            GROUP BY severity
+        ''', params)
+        severity_rows = cursor.fetchall()
+        severity_order = ('High', 'Medium', 'Low')
+        by_severity = {s: 0 for s in severity_order}
+        for row in severity_rows:
+            s = row['severity']
+            if s in by_severity:
+                by_severity[s] = row['count']
+            else:
+                by_severity[s] = row['count']
 
-        cursor.execute('''
-            SELECT source_ip, COUNT(*) as count FROM detections
-            WHERE source_ip != 'Unknown'
+        top_conditions = ["source_ip != 'Unknown'"]
+        top_params = []
+        if file_id is not None:
+            top_conditions.append('file_analysis_id = ?')
+            top_params.append(file_id)
+        if severity:
+            top_conditions.append('severity = ?')
+            top_params.append(severity)
+        top_where = 'WHERE ' + ' AND '.join(top_conditions)
+        cursor.execute(f'''
+            SELECT source_ip, COUNT(*) as count FROM detections {top_where}
             GROUP BY source_ip ORDER BY count DESC LIMIT 10
-        ''')
+        ''', top_params)
         top_source_ips = [{'ip': row['source_ip'], 'count': row['count']} for row in cursor.fetchall()]
 
         return {

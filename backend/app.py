@@ -70,12 +70,14 @@ def upload_file():
         urls = data_ingestion.process_file(filepath, file_extension)
 
         results = []
+        # Insert file analysis first so we can link each detection to this file (analyst context)
+        file_analysis_id = db.insert_file_analysis(filename, file_extension, 0)
         for url_data in urls:
             url = url_data.get('url', '')
             source_ip = url_data.get('source_ip', 'Unknown')
             timestamp = url_data.get('timestamp', '')
 
-            # One URL -> one detection (priority-based)
+            # One URL -> one detection (priority-based) — detection logic unchanged
             detection = detect_attack(url)
             if detection:
                 result = {
@@ -87,9 +89,13 @@ def upload_file():
                     'confidence_score': detection.get('confidence_score'),
                 }
                 results.append(result)
-                db.insert_detection(result)
+                db.insert_detection(result, file_analysis_id=file_analysis_id)
 
-        db.insert_file_analysis(filename, file_extension, len(results))
+        # Update file_analysis with final attack count (we inserted with 0 initially)
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        cursor.execute('UPDATE file_analysis SET total_attacks_detected = ? WHERE id = ?', (len(results), file_analysis_id))
+        conn.commit()
 
         return jsonify({
             'message': 'File processed successfully',
@@ -113,20 +119,27 @@ def upload_file():
 def get_detections():
     attack_type = request.args.get('attack_type', None)
     source_ip = request.args.get('source_ip', None)
-    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip)
+    file_id = request.args.get('file_id', type=int)
+    severity = request.args.get('severity', None)
+    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip, file_id=file_id, severity=severity)
     return jsonify({'total': len(detections), 'detections': detections}), 200
 
 
 @app.route('/api/statistics', methods=['GET'])
 def get_statistics():
-    stats = db.get_statistics()
+    """Statistics for dashboard. If file_id or severity is provided, stats are scoped accordingly."""
+    file_id = request.args.get('file_id', type=int)
+    severity = request.args.get('severity', None)
+    stats = db.get_statistics(file_id=file_id, severity=severity)
     return jsonify(stats), 200
 
 
 @app.route('/api/top-ips', methods=['GET'])
 def get_top_ips():
-    """Return top attacking IPs with attack count for analyst/SIEM use."""
-    stats = db.get_statistics()
+    """Return top attacking IPs with attack count for analyst/SIEM use. Optional file_id and severity for context."""
+    file_id = request.args.get('file_id', type=int)
+    severity = request.args.get('severity', None)
+    stats = db.get_statistics(file_id=file_id, severity=severity)
     return jsonify({
         'top_source_ips': stats.get('top_source_ips', []),
     }), 200
@@ -150,7 +163,9 @@ def clear_database():
 def export_csv():
     attack_type = request.args.get('attack_type', None)
     source_ip = request.args.get('source_ip', None)
-    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip)
+    file_id = request.args.get('file_id', type=int)
+    severity = request.args.get('severity', None)
+    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip, file_id=file_id, severity=severity)
 
     output = StringIO()
     if detections:
@@ -170,7 +185,9 @@ def export_csv():
 def export_json():
     attack_type = request.args.get('attack_type', None)
     source_ip = request.args.get('source_ip', None)
-    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip)
+    file_id = request.args.get('file_id', type=int)
+    severity = request.args.get('severity', None)
+    detections = db.get_detections(attack_type=attack_type, source_ip=source_ip, file_id=file_id, severity=severity)
     return jsonify({'total': len(detections), 'detections': detections}), 200
 
 

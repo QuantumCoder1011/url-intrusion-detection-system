@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../services/api';
 
-function EventsTable({ detections, loading, filters, onFilterChange }) {
+// Severity order: High (highest) → Medium → Low (lowest). Used for column sort only.
+const SEVERITY_ORDER = ['High', 'Medium', 'Low'];
+
+function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const handleSort = (key) => {
@@ -15,16 +18,21 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
 
   const sortedDetections = [...detections].sort((a, b) => {
     if (!sortConfig.key) return 0;
-    
+
+    if (sortConfig.key === 'severity') {
+      const aIdx = SEVERITY_ORDER.indexOf(a.severity);
+      const bIdx = SEVERITY_ORDER.indexOf(b.severity);
+      const aOrder = aIdx === -1 ? 999 : aIdx;
+      const bOrder = bIdx === -1 ? 999 : bIdx;
+      if (aOrder < bOrder) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (aOrder > bOrder) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    }
+
     const aValue = a[sortConfig.key];
     const bValue = b[sortConfig.key];
-    
-    if (aValue < bValue) {
-      return sortConfig.direction === 'asc' ? -1 : 1;
-    }
-    if (aValue > bValue) {
-      return sortConfig.direction === 'asc' ? 1 : -1;
-    }
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
 
@@ -40,6 +48,8 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
       const params = new URLSearchParams();
       if (filters.attackType) params.append('attack_type', filters.attackType);
       if (filters.sourceIp) params.append('source_ip', filters.sourceIp);
+      if (filters.severity) params.append('severity', filters.severity);
+      if (fileId != null) params.append('file_id', fileId);
 
       const url = `${API_BASE_URL}/export/${format}?${params.toString()}`;
       
@@ -121,7 +131,7 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
         <select
           value={filters.attackType}
           onChange={(e) => handleFilterChange('attackType', e.target.value)}
-          style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px', minWidth: '200px' }}
+          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '200px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
         >
           <option value="">All Attack Types</option>
           {getUniqueValues('attack_type').map(type => (
@@ -131,18 +141,28 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
         <select
           value={filters.sourceIp}
           onChange={(e) => handleFilterChange('sourceIp', e.target.value)}
-          style={{ padding: '8px', border: '1px solid #ddd', borderRadius: '4px', minWidth: '200px' }}
+          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '200px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
         >
           <option value="">All Source IPs</option>
           {getUniqueValues('source_ip').map(ip => (
             <option key={ip} value={ip}>{ip}</option>
           ))}
         </select>
-        {(filters.attackType || filters.sourceIp) && (
+        <select
+          value={filters.severity}
+          onChange={(e) => handleFilterChange('severity', e.target.value)}
+          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '160px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
+        >
+          <option value="">All Severities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+        {(filters.attackType || filters.sourceIp || filters.severity) && (
           <button
             className="btn"
-            onClick={() => onFilterChange({ attackType: '', sourceIp: '' })}
-            style={{ backgroundColor: '#6c757d', color: 'white' }}
+            onClick={() => onFilterChange({ attackType: '', sourceIp: '', severity: '' })}
+            style={{ backgroundColor: 'var(--btn-secondary-bg)', color: 'white' }}
           >
             Clear Filters
           </button>
@@ -154,47 +174,35 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
           No detections found. Upload a file to start analysis.
         </p>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="table-wrap" style={{ maxHeight: '400px' }}>
+          <table className="data-table" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ backgroundColor: '#f8f9fa' }}>
-                <th
-                  style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', cursor: 'pointer' }}
-                  onClick={() => handleSort('url')}
-                >
+              <tr>
+                <th onClick={() => handleSort('url')} style={{ cursor: 'pointer' }}>
                   URL {sortConfig.key === 'url' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th
-                  style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', cursor: 'pointer' }}
-                  onClick={() => handleSort('source_ip')}
-                >
+                <th onClick={() => handleSort('source_ip')} style={{ cursor: 'pointer' }}>
                   Source IP {sortConfig.key === 'source_ip' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th
-                  style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', cursor: 'pointer' }}
-                  onClick={() => handleSort('attack_type')}
-                >
+                <th onClick={() => handleSort('attack_type')} style={{ cursor: 'pointer' }}>
                   Attack Type {sortConfig.key === 'attack_type' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th
-                  style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', cursor: 'pointer' }}
-                  onClick={() => handleSort('severity')}
-                >
+                <th onClick={() => handleSort('severity')} style={{ cursor: 'pointer' }}>
                   Severity {sortConfig.key === 'severity' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Confidence</th>
-                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd' }}>Timestamp</th>
+                <th>Confidence</th>
+                <th>Timestamp</th>
               </tr>
             </thead>
             <tbody>
               {sortedDetections.map((detection, index) => (
-                <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '12px', maxWidth: '400px', wordBreak: 'break-all' }}>
+                <tr key={detection.id != null ? detection.id : index}>
+                  <td style={{ maxWidth: '380px', wordBreak: 'break-all' }} title={detection.url}>
                     {detection.url}
                   </td>
-                  <td style={{ padding: '12px' }}>{detection.source_ip}</td>
-                  <td style={{ padding: '12px' }}>{detection.attack_type}</td>
-                  <td style={{ padding: '12px' }}>
+                  <td>{detection.source_ip}</td>
+                  <td>{detection.attack_type}</td>
+                  <td>
                     <span
                       style={{
                         padding: '4px 8px',
@@ -208,10 +216,10 @@ function EventsTable({ detections, loading, filters, onFilterChange }) {
                       {detection.severity}
                     </span>
                   </td>
-                  <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
+                  <td style={{ fontSize: '12px' }}>
                     {detection.confidence_score != null ? `${detection.confidence_score}%` : '—'}
                   </td>
-                  <td style={{ padding: '12px', fontSize: '12px', color: '#666' }}>
+                  <td style={{ fontSize: '12px' }}>
                     {detection.timestamp || detection.detected_at || 'N/A'}
                   </td>
                 </tr>
