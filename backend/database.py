@@ -51,13 +51,15 @@ class Database:
             )
         ''')
 
-        # Migration: add confidence_score if missing (e.g. existing DBs)
+        # Migration: add columns if missing (e.g. existing DBs)
         cursor.execute("PRAGMA table_info(detections)")
         cols = [row[1] for row in cursor.fetchall()]
         if 'confidence_score' not in cols:
             cursor.execute("ALTER TABLE detections ADD COLUMN confidence_score INTEGER")
         if 'file_analysis_id' not in cols:
             cursor.execute("ALTER TABLE detections ADD COLUMN file_analysis_id INTEGER REFERENCES file_analysis(id)")
+        if 'pattern_matched' not in cols:
+            cursor.execute("ALTER TABLE detections ADD COLUMN pattern_matched TEXT")
 
         conn.commit()
 
@@ -203,6 +205,13 @@ class Database:
 
 
 def _row_to_detection(row) -> Dict:
+    # Safely get pattern_matched (column may be missing in old DBs; NULL -> '')
+    pattern_matched = ''
+    try:
+        if 'pattern_matched' in row.keys() and row['pattern_matched'] is not None:
+            pattern_matched = str(row['pattern_matched'])
+    except (KeyError, TypeError):
+        pass
     d = {
         'id': row['id'],
         'url': row['url'],
@@ -210,7 +219,7 @@ def _row_to_detection(row) -> Dict:
         'timestamp': row['timestamp'],
         'attack_type': row['attack_type'],
         'severity': row['severity'],
-        'pattern_matched': row['pattern_matched'],
+        'pattern_matched': pattern_matched,
         'detected_at': row['detected_at'],
     }
     if 'confidence_score' in row.keys() and row['confidence_score'] is not None:

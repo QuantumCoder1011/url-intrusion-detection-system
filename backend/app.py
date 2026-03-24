@@ -87,6 +87,7 @@ def upload_file():
                     'attack_type': detection['attack_type'],
                     'severity': detection['severity'],
                     'confidence_score': detection.get('confidence_score'),
+                    'pattern_matched': detection.get('pattern_matched', ''),
                 }
                 results.append(result)
                 db.insert_detection(result, file_analysis_id=file_analysis_id)
@@ -159,6 +160,13 @@ def clear_database():
     return jsonify({'message': 'Database cleared successfully'}), 200
 
 
+# Explicit column order for CSV export so pattern_matched is always included
+EXPORT_FIELDNAMES = [
+    'id', 'url', 'source_ip', 'timestamp', 'attack_type', 'severity',
+    'pattern_matched', 'confidence_score', 'detected_at',
+]
+
+
 @app.route('/api/export/csv', methods=['GET'])
 def export_csv():
     attack_type = request.args.get('attack_type', None)
@@ -169,7 +177,7 @@ def export_csv():
 
     output = StringIO()
     if detections:
-        writer = csv.DictWriter(output, fieldnames=detections[0].keys(), extrasaction='ignore')
+        writer = csv.DictWriter(output, fieldnames=EXPORT_FIELDNAMES, extrasaction='ignore')
         writer.writeheader()
         writer.writerows(detections)
 

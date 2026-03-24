@@ -73,6 +73,16 @@ def _compute_confidence(decoded: str, raw_url: str, pattern_list: List, attack_k
     return min(100, base + encoded_bonus)
 
 
+def _get_pattern_string(pat, attack_type: str) -> str:
+    """Return the regex pattern string for the matched pattern (for storage/export)."""
+    if hasattr(pat, 'pattern'):
+        s = str(pat.pattern)
+    else:
+        s = str(pat)
+    s = (s or f"({attack_type} rule)")[:500]
+    return s
+
+
 def detect_attack(url: str) -> Optional[Dict]:
     """
     Analyze a URL and return at most one detection.
@@ -102,10 +112,12 @@ def detect_attack(url: str) -> Optional[Dict]:
         for pat in pattern_list:
             if pat.search(decoded):
                 confidence = _compute_confidence(decoded, raw_url, pattern_list, key)
+                pattern_matched = _get_pattern_string(pat, attack_type)
                 return {
                     "attack_type": attack_type,
                     "severity": severity,
                     "confidence_score": confidence,
+                    "pattern_matched": pattern_matched,
                 }
 
     # Low severity: only if no high/medium match
@@ -113,10 +125,12 @@ def detect_attack(url: str) -> Optional[Dict]:
     for pat in low_list:
         if pat.search(decoded):
             confidence = _compute_confidence(decoded, raw_url, low_list, "low_severity")
+            pattern_matched = _get_pattern_string(pat, "Suspicious Activity")
             return {
                 "attack_type": "Suspicious Activity",
                 "severity": "Low",
                 "confidence_score": min(confidence, 50),
+                "pattern_matched": pattern_matched,
             }
 
     return None
