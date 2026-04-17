@@ -38,6 +38,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 data_ingestion = DataIngestion()
 db = Database()
+with app.app_context():
+    db.init_db()
 
 
 def allowed_file(filename):
@@ -201,4 +203,4 @@ def export_json():
 
 if __name__ == '__main__':
     db.init_db()
-    app.run(debug=True, port=5000)
+    app.run(debug=False, port=5000)
