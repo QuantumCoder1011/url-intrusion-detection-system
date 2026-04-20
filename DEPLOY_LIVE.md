@@ -9,17 +9,12 @@ Your app has two parts: **Backend (Flask)** and **Frontend (React)**. Deploy bot
 ### Part 1: Deploy Backend on Render
 
 1. Go to **https://render.com** and sign up (or sign in with GitHub).
-2. Click **New +** → **Web Service**.
-3. Connect your GitHub account if needed, then select the repo **url-intrusion-detection-system**.
-4. Configure:
-   - **Name:** e.g. `url-ids-api`
-   - **Root Directory:** leave empty or set to `backend`
-   - **Runtime:** Python 3
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app` (or leave blank if you set Root Directory to `backend`; then use `cd backend && gunicorn app:app` or set **Root Directory** to `backend` and **Start Command** to `gunicorn app:app`)
-   - If **Root Directory** is `backend`, use **Start Command:** `gunicorn app:app`
-5. Click **Create Web Service**.
-6. Wait for the first deploy to finish. Copy your backend URL, e.g. **https://url-ids-api.onrender.com** (no trailing slash).
+2. Click **New +** → **Blueprint**.
+3. Connect your GitHub account and select the repo **url-intrusion-detection-system**.
+4. Render will automatically detect the `render.yaml` file in the repository.
+5. Click **Apply Blueprint** (or "Create Web Service").
+   - *Note: The `render.yaml` automatically configures the Root Directory, Python Version (3.11.9), Build Command, and Start Command so you don't have to worry about failures!*
+6. Wait for the deploy to finish. Click on the web service it created and copy your backend URL, e.g. **https://url-ids-api.onrender.com** (no trailing slash).
 
 ---
 
@@ -50,7 +45,7 @@ If the frontend shows “Could not connect to the server” when using the live 
 
 ## Option B: Deploy Both on Render
 
-1. **Backend:** Same as Part 1 above (Web Service, Root Directory `backend`, Start Command `gunicorn app:app`).
+1. **Backend:** Same as Part 1 above (Deploy via **Blueprint** to automate configuration).
 2. **Frontend:** On Render, click **New +** → **Static Site**.
    - Connect the same repo.
    - **Root Directory:** `frontend`
