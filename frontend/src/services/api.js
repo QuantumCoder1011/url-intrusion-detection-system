@@ -4,16 +4,41 @@ export const API_BASE_URL = process.env.REACT_APP_API_URL
   ? process.env.REACT_APP_API_URL.replace(/\/$/, '') + '/api'
   : '/api';
 
-/**
- * Fetch detections, optionally scoped to a single file (file_id) for analyst context.
- * When fileId is null/undefined, returns all detections (cumulative).
- */
-export const fetchDetections = async (attackType = '', sourceIp = '', fileId = null, severity = '') => {
+// Axios interceptor for JWT Auth
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('ids_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const login = async (username, password) => {
+  const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
+  if (response.data.token) {
+    localStorage.setItem('ids_token', response.data.token);
+    localStorage.setItem('ids_role', response.data.role);
+  }
+  return response.data;
+};
+
+export const logout = () => {
+  localStorage.removeItem('ids_token');
+  localStorage.removeItem('ids_role');
+};
+
+export const simulateAttack = async (url) => {
+  const response = await axios.post(`${API_BASE_URL}/simulate-attack`, { url });
+  return response.data;
+};
+
+export const fetchDetections = async (attackType = '', sourceIp = '', fileId = null, severity = '', detectionSource = '') => {
   const params = new URLSearchParams();
   if (attackType) params.append('attack_type', attackType);
   if (sourceIp) params.append('source_ip', sourceIp);
   if (fileId != null) params.append('file_id', fileId);
   if (severity) params.append('severity', severity);
+  if (detectionSource) params.append('detection_source', detectionSource);
   const response = await axios.get(`${API_BASE_URL}/detections?${params.toString()}`);
   return response.data.detections || [];
 };
@@ -40,7 +65,9 @@ export const fetchTopIPs = async (fileId = null) => {
  * Download overall statistics (all files) as CSV. Used by "Download Overall Statistics".
  */
 export const downloadOverallCsv = async () => {
-  const response = await fetch(`${API_BASE_URL}/export/csv`);
+  const response = await fetch(`${API_BASE_URL}/export/csv`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('ids_token')}` }
+  });
   const blob = await response.blob();
   return blob;
 };

@@ -1,48 +1,39 @@
-/**
- * URL Intrusion Detection System - Main App.
- * This UI mimics real SOC/analyst dashboards: theme toggle, file-based context for statistics,
- * and analyst summary with recommendations. File-based context improves investigation by
- * showing stats per uploaded file instead of only cumulative totals.
- */
 import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import Dashboard from './components/Dashboard';
 import EventsTable from './components/EventsTable';
 import FileUpload from './components/FileUpload';
-import Header from './components/Header';
+import Simulator from './components/Simulator';
 import {
   fetchDetections,
   fetchStatistics,
   fetchFileHistory,
   clearDatabase,
+  login,
+  logout
 } from './services/api';
 
-const THEME_KEY = 'ids-theme';
-
 function App() {
+  const [token, setToken] = useState(localStorage.getItem('ids_token'));
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
   const [detections, setDetections] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [fileHistory, setFileHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [connectionError, setConnectionError] = useState(false);
-  const [filters, setFilters] = useState({ attackType: '', sourceIp: '', severity: '' });
-  // File-based context: when set, dashboard and table show only that file's data (analyst workflow).
+  const [filters, setFilters] = useState({ attackType: '', sourceIp: '', severity: '', detectionSource: '' });
   const [selectedFileId, setSelectedFileId] = useState(null);
-  // Theme: persist during session for analyst comfort (light/dark).
-  const [theme, setTheme] = useState(() => {
-    try {
-      return sessionStorage.getItem(THEME_KEY) || 'light';
-    } catch {
-      return 'light';
-    }
-  });
 
   const loadData = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     setConnectionError(false);
     try {
       const [dets, stats, history] = await Promise.all([
-        fetchDetections(filters.attackType, filters.sourceIp, selectedFileId, filters.severity),
+        fetchDetections(filters.attackType, filters.sourceIp, selectedFileId, filters.severity, filters.detectionSource),
         fetchStatistics(selectedFileId, filters.severity),
         fetchFileHistory(),
       ]);
@@ -51,28 +42,41 @@ function App() {
       setFileHistory(history);
     } catch (error) {
       console.error('Error loading data:', error);
-      setConnectionError(true);
+      if (error.response?.status === 401) {
+        logout();
+        setToken(null);
+      } else {
+        setConnectionError(true);
+      }
       setDetections([]);
       setStatistics(null);
       setFileHistory([]);
     } finally {
       setLoading(false);
     }
-  }, [filters.attackType, filters.sourceIp, filters.severity, selectedFileId]);
+  }, [filters.attackType, filters.sourceIp, filters.severity, filters.detectionSource, selectedFileId, token]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  const handleThemeToggle = () => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setAuthError('');
     try {
-      sessionStorage.setItem(THEME_KEY, next);
-    } catch {}
+      const res = await login(username, password);
+      setToken(res.token);
+    } catch (err) {
+      setAuthError('Invalid credentials or server offline.');
+    }
   };
 
-  const handleFileUpload = () => {
+  const handleLogout = () => {
+    logout();
+    setToken(null);
+  };
+
+  const handleDataUpdate = () => {
     setSelectedFileId(null);
     loadData();
   };
@@ -91,32 +95,85 @@ function App() {
       loadData();
     } catch (error) {
       console.error('Error clearing database:', error);
-      alert('Failed to clear database.');
+      alert('Failed to clear database. Admin privileges required.');
     }
   };
 
-  return (
-    <div className={`App theme-${theme}`}>
-      <Header theme={theme} onThemeToggle={handleThemeToggle} />
-      {connectionError && (
-        <div className="connection-error-banner">
-          Could not connect to the server. Make sure the backend is running on port 5000.
+  if (!token) {
+    return (
+      <div className="auth-container">
+        <div className="scanline"></div>
+        <div className="cyber-card auth-card">
+          <div className="logo-text auth-logo">IDS::GATEWAY</div>
+          <div className="auth-subtitle">SECURE SOC AUTHENTICATION REQUIRED</div>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <input 
+              type="text" 
+              placeholder="Operator ID (admin)" 
+              value={username} 
+              onChange={e => setUsername(e.target.value)} 
+              style={{ padding: '12px', textAlign: 'center', letterSpacing: '1px' }}
+            />
+            <input 
+              type="password" 
+              placeholder="Access Key" 
+              value={password} 
+              onChange={e => setPassword(e.target.value)} 
+              style={{ padding: '12px', textAlign: 'center', letterSpacing: '2px' }}
+            />
+            <button type="submit" className="btn btn-primary" style={{ padding: '12px', marginTop: '10px' }}>
+              INITIALIZE UPLINK
+            </button>
+            {authError && <div style={{ color: 'var(--neon-red)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>[!] {authError}</div>}
+          </form>
         </div>
-      )}
-      <div className="container">
-        <div className="toolbar">
-          <button className="btn btn-danger" onClick={handleClearDatabase}>
-            Clear Database
+      </div>
+    );
+  }
+
+  return (
+    <div className="App">
+      <div className="scanline"></div>
+      <header>
+        <div className="logo-section">
+          <div className="logo-text">HYBRID::IDS</div>
+        </div>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div className="status-indicator">
+            <div className="status-dot"></div>
+            SYSTEM ONLINE
+          </div>
+          <button className="btn" onClick={handleLogout}>
+            TERMINATE SESSION
           </button>
         </div>
-        <FileUpload onUpload={handleFileUpload} />
+      </header>
+
+      {connectionError && (
+        <div style={{ background: 'var(--neon-red)', color: '#fff', padding: '10px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+          [CRITICAL] CONNECTION LOST TO COMMAND SERVER (PORT 5000)
+        </div>
+      )}
+
+      <div className="container">
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+          <button className="btn btn-danger" onClick={handleClearDatabase}>
+            PURGE DATABASE
+          </button>
+        </div>
+        
+        <Simulator onSimulationComplete={handleDataUpdate} />
+        
+        <div style={{ marginTop: '20px' }}>
+            <FileUpload onUpload={handleDataUpdate} />
+        </div>
+
         <Dashboard
           statistics={statistics}
           fileHistory={fileHistory}
           loading={loading}
           selectedFileId={selectedFileId}
           onSelectFile={setSelectedFileId}
-          theme={theme}
         />
         <EventsTable
           detections={detections}

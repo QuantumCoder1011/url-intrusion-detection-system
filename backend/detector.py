@@ -83,20 +83,17 @@ def _get_pattern_string(pat, attack_type: str) -> str:
     return s
 
 
+from ml_detector import predict_attack
+
 def detect_attack(url: str) -> Optional[Dict]:
     """
-    Analyze a URL and return at most one detection.
+    Analyze a URL and return at most one detection (Hybrid Detection).
 
     Steps:
-    1. Return None if url is None or empty.
-    2. URL-decode the input.
-    3. Check patterns in priority order (Command Injection → Directory Traversal → XSS → SQL Injection).
-    4. On first high/medium match: return { attack_type, severity, confidence_score }.
-    5. If no strong match but low_severity matches: return Suspicious Activity / Low.
-    6. Otherwise return None.
-
-    SQL Injection is not reported if the URL was already classified as Command Injection or XSS,
-    to avoid semicolon/shell confusion and overlapping categories.
+    1. Check patterns in priority order. If strong match -> return as Rule detection.
+    2. If no strong match, run ML. If ML detects -> return as ML detection (Medium priority).
+    3. If ML flags as anomalous -> return as Suspicious (Low priority).
+    4. If low severity rule matches -> return as Suspicious (Low priority).
     """
     if url is None or (isinstance(url, str) and not url.strip()):
         return None
@@ -107,6 +104,7 @@ def detect_attack(url: str) -> Optional[Dict]:
     if not decoded:
         return None
 
+    # Step 1: Rule-based Strong Detection (HIGH/MEDIUM)
     for key, attack_type, severity in PRIORITY_ORDER:
         pattern_list = ATTACK_PATTERNS.get(key, [])
         for pat in pattern_list:
@@ -118,9 +116,22 @@ def detect_attack(url: str) -> Optional[Dict]:
                     "severity": severity,
                     "confidence_score": confidence,
                     "pattern_matched": pattern_matched,
+                    "detection_source": "Rule"
                 }
 
-    # Low severity: only if no high/medium match
+    # Step 2: ML-based Detection
+    ml_result = predict_attack(raw_url)
+    if ml_result:
+        # If ML strongly predicts an attack
+        return {
+            "attack_type": ml_result["attack_type"],
+            "severity": "Medium", # ML defaults to Medium as per requirements
+            "confidence_score": ml_result["confidence_score"],
+            "pattern_matched": "ML Model Prediction",
+            "detection_source": "ML"
+        }
+
+    # Step 3: Low severity / Suspicious (Rule fallback)
     low_list = ATTACK_PATTERNS.get("low_severity", [])
     for pat in low_list:
         if pat.search(decoded):
@@ -131,6 +142,7 @@ def detect_attack(url: str) -> Optional[Dict]:
                 "severity": "Low",
                 "confidence_score": min(confidence, 50),
                 "pattern_matched": pattern_matched,
+                "detection_source": "Rule"
             }
 
     return None

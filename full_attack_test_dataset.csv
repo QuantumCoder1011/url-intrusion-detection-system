@@ -1,0 +1,64 @@
+timestamp,source_ip,url,expected_attack_type,expected_detection_source,expected_severity,test_note
+2026-04-21 09:00:00,203.0.113.1,/,None,None,None,Benign baseline
+2026-04-21 09:00:37,203.0.113.2,/index.html,None,None,None,Benign baseline
+2026-04-21 09:01:14,203.0.113.3,/about,None,None,None,Benign baseline
+2026-04-21 09:01:51,203.0.113.4,/contact,None,None,None,Benign baseline
+2026-04-21 09:02:28,203.0.113.5,/login,None,None,None,Benign baseline
+2026-04-21 09:03:05,203.0.113.6,/dashboard,None,None,None,Benign baseline
+2026-04-21 09:03:42,203.0.113.7,/settings,None,None,None,Benign baseline
+2026-04-21 09:04:19,203.0.113.8,/profile?user=vansh,None,None,None,Benign baseline
+2026-04-21 09:04:56,203.0.113.9,/api/users?id=123,None,None,None,Benign baseline
+2026-04-21 09:05:33,203.0.113.10,/products?category=books&page=2,None,None,None,Benign baseline
+2026-04-21 09:06:10,203.0.113.11,/search?q=hello,None,None,None,Benign baseline
+2026-04-21 09:06:47,203.0.113.12,/assets/style.css,None,None,None,Benign baseline
+2026-04-21 09:07:24,203.0.113.13,/images/logo.png,None,None,None,Benign baseline
+2026-04-21 09:08:01,203.0.113.14,/download?file=report.pdf,None,None,None,Benign baseline
+2026-04-21 09:08:38,203.0.113.15,/api/data?sort=created_at,None,None,None,Benign baseline
+2026-04-21 09:09:15,192.168.10.20,/login?user=admin' OR 1=1,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:09:52,192.168.10.21,/item?id=1' OR 1=1#,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:10:29,192.168.10.22,/search?q=test' UNION SELECT * FROM users--,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:11:06,192.168.10.23,/reports?query=SELECT password FROM users,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:11:43,192.168.10.24,/api?id=1; DROP TABLE users--,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:12:20,192.168.10.25,/delete?item=1;--,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:12:57,192.168.10.26,/login?name=admin%27%20OR%201%3D1,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:13:34,192.168.10.27,/lookup?u=admin'%20--,SQL Injection,Rule,High,Rule SQLi
+2026-04-21 09:14:11,198.51.100.40,/search?q=<script>alert(1)</script>,XSS,Rule,High,Rule XSS
+2026-04-21 09:14:48,198.51.100.41,/comment?text=<img src=x onerror=alert(document.cookie)>,XSS,Rule,High,Rule XSS
+2026-04-21 09:15:25,198.51.100.42,/profile?name=<svg onload=alert(1)>,XSS,Rule,High,Rule XSS
+2026-04-21 09:16:02,198.51.100.43,/?ref=javascript:alert(1),XSS,Rule,High,Rule XSS
+2026-04-21 09:16:39,198.51.100.44,/frame?next=<iframe src=http://evil.test></iframe>,XSS,Rule,High,Rule XSS
+2026-04-21 09:17:16,198.51.100.45,/link?x=vbscript:msgbox(1),XSS,Rule,High,Rule XSS
+2026-04-21 09:17:53,198.51.100.46,/page?x=%3Cscript%20src%3D//evil.test/x.js%3E%3C/script%3E,XSS,Rule,High,Rule XSS
+2026-04-21 09:18:30,198.51.100.47,/button?label=test&onclick=alert(1),XSS,Rule,High,Rule XSS
+2026-04-21 09:19:07,10.0.20.60,/download?file=../../../etc/passwd,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:19:44,10.0.20.61,/view?path=..%2f..%2f..%2fetc%2fpasswd,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:20:21,10.0.20.62,/static/..%252f..%252f..%252fetc/passwd,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:20:58,10.0.20.63,/api/file?path=..\..\..\windows\system32\config\sam,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:21:35,10.0.20.64,/read?name=../../etc/shadow,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:22:12,10.0.20.65,/assets/../../../../var/log/auth.log,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:22:49,10.0.20.66,/open?target=..%5c..%5cboot.ini,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:23:26,10.0.20.67,/docs?file=..%255c..%255csecret.txt,Directory Traversal,Rule,Medium,Rule traversal
+2026-04-21 09:24:03,172.16.30.80,/run?cmd=; ls -la,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:24:40,172.16.30.81,/run?cmd=; whoami,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:25:17,172.16.30.82,/api?q=test | cat /etc/passwd,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:25:54,172.16.30.83,/shell?c=&& netstat -an,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:26:31,172.16.30.84,/process?x=|| id,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:27:08,172.16.30.85,/debug?cmd=$(uname -a),Command Injection,Rule,High,Rule command injection
+2026-04-21 09:27:45,172.16.30.86,/backup?target=`whoami`,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:28:22,172.16.30.87,/chmod?file=x; chmod 777 x,Command Injection,Rule,High,Rule command injection
+2026-04-21 09:28:59,192.0.2.100,/note?text=single%27quote,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:29:36,192.0.2.101,/name?value=o%27reilly,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:30:13,192.0.2.102,/book?title=reader%27s-choice,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:30:50,192.0.2.103,/literal?mark=apostrophe%27,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:31:27,192.0.2.104,/search?q=customer%27s+receipt,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:32:04,192.0.2.105,/profile?nickname=pilot%27s-log,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:32:41,192.0.2.106,/docs?title=admin%27s-guide,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:33:18,192.0.2.107,/ticket?message=operator%27s-note,Suspicious Activity,Rule,Low,Low-severity rule fallback
+2026-04-21 09:33:55,10.10.40.120,/exec?command=id,Command Injection,ML,Medium,ML command style from training data
+2026-04-21 09:34:32,10.10.40.121,/search?q=script alert,XSS,ML,Medium,XSS vocabulary without literal tags
+2026-04-21 09:35:09,10.10.40.122,/login?user=admin' OR '1'='1,SQL Injection,ML,Medium,SQLi shape not covered by strong SQL regex
+2026-04-21 09:35:46,10.10.40.123,/api/file?path=windows\system32\config\sam,Directory Traversal,ML,Medium,Sensitive Windows path without traversal token
+2026-04-21 09:36:23,10.10.40.124,/shell?command=netstat,Command Injection,ML,Medium,Command keyword without rule delimiter
+2026-04-21 09:37:00,10.10.40.125,/profile?name=javascriptalert,XSS,ML,Medium,JavaScript vocabulary without javascript: scheme
+2026-04-21 09:37:37,10.10.40.126,/comment?text=alert cookie,SQL Injection,ML,Medium,Model false-positive/regression guard
+2026-04-21 09:38:14,10.10.40.127,/view?path=etc/passwd,Directory Traversal,ML,Medium,Sensitive Unix path without leading slash

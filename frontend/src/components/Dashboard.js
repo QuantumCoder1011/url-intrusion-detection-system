@@ -31,7 +31,7 @@ const SEVERITY_ORDER = ['High', 'Medium', 'Low'];
 /**
  * Build ordered severity chart data so the bar chart always shows High | Medium | Low left to right.
  */
-function getSeverityChartData(bySeverity, isDark) {
+function getSeverityChartData(bySeverity) {
   const labels = SEVERITY_ORDER.filter((s) => (bySeverity || {})[s] !== undefined && (bySeverity || {})[s] > 0);
   if (labels.length === 0) return { labels: [], data: [] };
   const data = labels.map((s) => (bySeverity || {})[s] || 0);
@@ -99,7 +99,7 @@ function getAnalystSummary(statistics, selectedFileId, selectedFileName) {
   return { summary, recommendations };
 }
 
-function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectFile, theme }) {
+function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectFile }) {
   const handleDownloadOverallCsv = async () => {
     try {
       const blob = await downloadOverallCsv();
@@ -135,29 +135,30 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
     }
   };
 
-  const isDark = theme === 'dark';
-  const chartTextColor = isDark ? '#e8eaed' : '#333';
-  const chartGridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)';
-  const tooltipBg = isDark ? '#252830' : '#ffffff';
-  const tooltipText = isDark ? '#e8eaed' : '#1a1a1a';
-  const tooltipBorder = isDark ? '#3c4043' : '#e8eaed';
+  const chartTextColor = '#e0f2fe';
+  const chartGridColor = 'rgba(0, 240, 255, 0.1)';
+  const tooltipBg = 'rgba(5, 8, 16, 0.9)';
+  const tooltipText = '#00f0ff';
+  const tooltipBorder = '#00f0ff';
 
   const chartOptions = useMemo(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { color: chartTextColor } },
+      legend: { position: 'bottom', labels: { color: chartTextColor, font: { family: 'JetBrains Mono' } } },
       tooltip: {
         backgroundColor: tooltipBg,
         titleColor: tooltipText,
-        bodyColor: tooltipText,
+        bodyColor: '#fff',
         borderColor: tooltipBorder,
         borderWidth: 1,
+        titleFont: { family: 'Orbitron' },
+        bodyFont: { family: 'JetBrains Mono' }
       },
     },
     scales: {
-      x: { ticks: { color: chartTextColor }, grid: { color: chartGridColor } },
-      y: { ticks: { color: chartTextColor }, grid: { color: chartGridColor } },
+      x: { ticks: { color: chartTextColor, font: { family: 'JetBrains Mono' } }, grid: { color: chartGridColor } },
+      y: { ticks: { color: chartTextColor, font: { family: 'JetBrains Mono' } }, grid: { color: chartGridColor } },
     },
   }), [chartTextColor, chartGridColor, tooltipBg, tooltipText, tooltipBorder]);
 
@@ -166,13 +167,15 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
     maintainAspectRatio: false,
     layout: { padding: 8 },
     plugins: {
-      legend: { position: 'bottom', labels: { color: chartTextColor } },
+      legend: { position: 'bottom', labels: { color: chartTextColor, font: { family: 'JetBrains Mono' } } },
       tooltip: {
         backgroundColor: tooltipBg,
         titleColor: tooltipText,
-        bodyColor: tooltipText,
+        bodyColor: '#fff',
         borderColor: tooltipBorder,
         borderWidth: 1,
+        titleFont: { family: 'Orbitron' },
+        bodyFont: { family: 'JetBrains Mono' }
       },
     },
   }), [chartTextColor, tooltipBg, tooltipText, tooltipBorder]);
@@ -190,10 +193,9 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
 
   if (loading) {
     return (
-      <div className="card">
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Loading statistics...</p>
+      <div className="cyber-card">
+        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--neon-cyan)', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ fontSize: '24px', animation: 'pulseGlow 2s infinite' }}>[ PROCESSING TELEMETRY... ]</div>
         </div>
       </div>
     );
@@ -201,10 +203,10 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
 
   if (!statistics) {
     return (
-      <div className="card">
-        <div className="card-title">Dashboard</div>
-        <p className="chart-empty" style={{ padding: '20px' }}>
-          No data available. Upload a file to start analysis.
+      <div className="cyber-card">
+        <div className="card-title">Telemetry Dashboard</div>
+        <p style={{ padding: '20px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', textAlign: 'center' }}>
+          NO DATA STREAMS DETECTED. INITIATE UPLOAD OR SIMULATION.
         </p>
       </div>
     );
@@ -219,11 +221,13 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
         label: 'Attack Types',
         data: Object.values(byAttackType),
         backgroundColor: [
-          '#e53935', '#1e88e5', '#43a047', '#fb8c00', '#8e24aa',
-          '#00897b', '#d81b60', '#5e35b1', '#039be5', '#7cb342',
+          'rgba(0, 240, 255, 0.6)', 'rgba(255, 0, 60, 0.6)', 'rgba(0, 255, 102, 0.6)', 
+          'rgba(255, 153, 0, 0.6)', 'rgba(138, 43, 226, 0.6)'
         ].slice(0, Math.max(attackTypeLabels.length, 1)),
-        borderWidth: 2,
-        borderColor: isDark ? '#252830' : '#fff',
+        borderWidth: 1,
+        borderColor: [
+          '#00f0ff', '#ff003c', '#00ff66', '#ff9900', '#8a2be2'
+        ].slice(0, Math.max(attackTypeLabels.length, 1)),
       },
     ],
   };
@@ -235,9 +239,9 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
       {
         label: 'Detections by Severity',
         data: severityValues,
-        backgroundColor: severityLabels.map((s) => (s === 'High' ? '#d32f2f' : s === 'Medium' ? '#f57c00' : '#388e3c')),
-        borderColor: severityLabels.map((s) => (s === 'High' ? '#b71c1c' : s === 'Medium' ? '#e65100' : '#2e7d32')),
-        borderWidth: 2,
+        backgroundColor: severityLabels.map((s) => (s === 'High' ? 'rgba(255, 0, 60, 0.6)' : s === 'Medium' ? 'rgba(255, 153, 0, 0.6)' : 'rgba(0, 255, 102, 0.6)')),
+        borderColor: severityLabels.map((s) => (s === 'High' ? '#ff003c' : s === 'Medium' ? '#ff9900' : '#00ff66')),
+        borderWidth: 1,
       },
     ],
   };
@@ -248,9 +252,9 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
     datasets: [{
       label: 'Number of Attacks',
       data: topIPs.map((item) => item.count),
-      backgroundColor: isDark ? '#5a8bd6' : '#667eea',
-      borderColor: isDark ? '#4a7bc6' : '#5a67d8',
-      borderWidth: 2,
+      backgroundColor: 'rgba(0, 240, 255, 0.3)',
+      borderColor: '#00f0ff',
+      borderWidth: 1,
     }],
   };
 
@@ -265,7 +269,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
 
   return (
     <div>
-      <div className="card">
+      <div className="cyber-card">
         <div className="card-title">
           Summary Statistics
           {selectedFileId ? ' (selected file)' : ' (all files)'}
@@ -287,7 +291,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
       </div>
 
       <div className="charts-row">
-        <div className="card chart-card">
+        <div className="cyber-card chart-card">
           <div className="card-title">Detections by Attack Type</div>
           <div className="chart-container" style={{ height: CHART_HEIGHT }}>
             {attackTypeLabels.length > 0 ? (
@@ -297,7 +301,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
             )}
           </div>
         </div>
-        <div className="card chart-card">
+        <div className="cyber-card chart-card">
           <div className="card-title">Detections by Severity (High → Low)</div>
           <div className="chart-container" style={{ height: CHART_HEIGHT }}>
             {severityLabels.length > 0 ? (
@@ -310,7 +314,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
       </div>
 
       {topIPs.length > 0 && (
-        <div className="card chart-card">
+        <div className="cyber-card chart-card">
           <div className="card-title">Top Attacking IPs</div>
           <div className="chart-container" style={{ height: CHART_HEIGHT }}>
             <Bar
@@ -335,7 +339,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
       )}
 
       {/* Analyst summary: plain-English summary and recommendations (SOC-style). */}
-      <div className="card">
+      <div className="cyber-card">
         <div className="card-title">Final Analysis Summary</div>
         <div className="analyst-summary">
           <p className="summary-text">{summary}</p>
@@ -352,7 +356,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
 
       {/* Download overall statistics (all files) — does not replace per-file view on screen. */}
       {fileHistory && fileHistory.length > 0 && (
-        <div className="card">
+        <div className="cyber-card">
           <div className="card-title">Download Overall Statistics</div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '12px' }}>
             Export detections for all files uploaded so far. This does not change the statistics shown above.
@@ -370,7 +374,7 @@ function Dashboard({ statistics, fileHistory, loading, selectedFileId, onSelectF
 
       {/* File history: clickable rows for file-based context (primary analyst workflow). */}
       {fileHistory && fileHistory.length > 0 && (
-        <div className="card">
+        <div className="cyber-card">
           <div className="card-title">File Analysis History</div>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '10px' }}>
             Click a row to show statistics for that file only. Click &quot;Clear selection&quot; to show all files again.

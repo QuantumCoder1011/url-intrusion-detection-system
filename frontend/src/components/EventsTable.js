@@ -88,19 +88,6 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
     return Array.from(values).sort();
   };
 
-  const getSeverityColor = (severity) => {
-    switch (severity) {
-      case 'High':
-        return '#f44336';
-      case 'Medium':
-        return '#ff9800';
-      case 'Low':
-        return '#4caf50';
-      default:
-        return '#666';
-    }
-  };
-
   if (loading) {
     return (
       <div className="card">
@@ -113,25 +100,25 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
   }
 
   return (
-    <div className="card">
+    <div className="cyber-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-        <div className="card-title" style={{ margin: 0 }}>Detected Security Events ({detections.length})</div>
+        <div className="card-title" style={{ margin: 0, fontFamily: 'var(--font-heading)', color: 'var(--neon-cyan)', textShadow: '0 0 10px var(--neon-cyan)' }}>
+          LIVE EVENT STREAM ({detections.length})
+        </div>
         <div style={{ display: 'flex', gap: '10px' }}>
           <button className="btn btn-primary" onClick={() => handleExport('csv')} disabled={detections.length === 0}>
-            Export CSV
+            EXPORT CSV
           </button>
           <button className="btn btn-primary" onClick={() => handleExport('json')} disabled={detections.length === 0}>
-            Export JSON
+            EXPORT JSON
           </button>
         </div>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', gap: '10px', marginBottom: '15px', flexWrap: 'wrap' }}>
         <select
           value={filters.attackType}
           onChange={(e) => handleFilterChange('attackType', e.target.value)}
-          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '200px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
         >
           <option value="">All Attack Types</option>
           {getUniqueValues('attack_type').map(type => (
@@ -141,7 +128,6 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
         <select
           value={filters.sourceIp}
           onChange={(e) => handleFilterChange('sourceIp', e.target.value)}
-          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '200px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
         >
           <option value="">All Source IPs</option>
           {getUniqueValues('source_ip').map(ip => (
@@ -151,27 +137,34 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
         <select
           value={filters.severity}
           onChange={(e) => handleFilterChange('severity', e.target.value)}
-          style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '4px', minWidth: '160px', backgroundColor: 'var(--bg-card)', color: 'var(--text-primary)' }}
         >
           <option value="">All Severities</option>
           <option value="High">High</option>
           <option value="Medium">Medium</option>
           <option value="Low">Low</option>
         </select>
-        {(filters.attackType || filters.sourceIp || filters.severity) && (
+        <select
+          value={filters.detectionSource || ''}
+          onChange={(e) => handleFilterChange('detectionSource', e.target.value)}
+        >
+          <option value="">All Sources</option>
+          <option value="Rule">Rule</option>
+          <option value="ML">ML</option>
+        </select>
+        {(filters.attackType || filters.sourceIp || filters.severity || filters.detectionSource) && (
           <button
             className="btn"
-            onClick={() => onFilterChange({ attackType: '', sourceIp: '', severity: '' })}
-            style={{ backgroundColor: 'var(--btn-secondary-bg)', color: 'white' }}
+            onClick={() => onFilterChange({ attackType: '', sourceIp: '', severity: '', detectionSource: '' })}
+            style={{ borderColor: 'var(--neon-orange)', color: 'var(--neon-orange)' }}
           >
-            Clear Filters
+            CLEAR FILTERS
           </button>
         )}
       </div>
 
       {detections.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#666', padding: '40px' }}>
-          No detections found. Upload a file to start analysis.
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '40px', fontFamily: 'var(--font-mono)' }}>
+          NO ANOMALOUS ACTIVITY DETECTED IN CURRENT STREAM.
         </p>
       ) : (
         <div className="table-wrap" style={{ maxHeight: '400px' }}>
@@ -190,6 +183,9 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
                 <th onClick={() => handleSort('severity')} style={{ cursor: 'pointer' }}>
                   Severity {sortConfig.key === 'severity' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
                 </th>
+                <th onClick={() => handleSort('detection_source')} style={{ cursor: 'pointer' }}>
+                  Source {sortConfig.key === 'detection_source' && (sortConfig.direction === 'asc' ? '↑' : '↓')}
+                </th>
                 <th>Confidence</th>
                 <th>Timestamp</th>
               </tr>
@@ -197,29 +193,33 @@ function EventsTable({ detections, loading, filters, onFilterChange, fileId }) {
             <tbody>
               {sortedDetections.map((detection, index) => (
                 <tr key={detection.id != null ? detection.id : index}>
-                  <td style={{ maxWidth: '380px', wordBreak: 'break-all' }} title={detection.url}>
+                  <td style={{ maxWidth: '380px', wordBreak: 'break-all', color: 'var(--text-primary)' }} title={detection.url}>
                     {detection.url}
                   </td>
-                  <td>{detection.source_ip}</td>
-                  <td>{detection.attack_type}</td>
+                  <td style={{ color: 'var(--neon-cyan)' }}>{detection.source_ip}</td>
+                  <td style={{ color: '#fff' }}>{detection.attack_type}</td>
                   <td>
-                    <span
-                      style={{
-                        padding: '4px 8px',
-                        borderRadius: '4px',
-                        backgroundColor: getSeverityColor(detection.severity) + '20',
-                        color: getSeverityColor(detection.severity),
-                        fontWeight: '500',
-                        fontSize: '12px'
-                      }}
-                    >
+                    <span className={`badge badge-${detection.severity.toLowerCase()}`}>
                       {detection.severity}
                     </span>
                   </td>
-                  <td style={{ fontSize: '12px' }}>
+                  <td>
+                    <span style={{
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        backgroundColor: detection.detection_source === 'ML' ? 'rgba(138, 43, 226, 0.2)' : 'rgba(0, 240, 255, 0.2)',
+                        color: detection.detection_source === 'ML' ? 'var(--neon-purple)' : 'var(--neon-cyan)',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        border: `1px solid ${detection.detection_source === 'ML' ? 'var(--neon-purple)' : 'var(--neon-cyan)'}`
+                    }}>
+                      {detection.detection_source || 'Rule'}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '12px', color: 'var(--neon-green)' }}>
                     {detection.confidence_score != null ? `${detection.confidence_score}%` : '—'}
                   </td>
-                  <td style={{ fontSize: '12px' }}>
+                  <td style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {detection.timestamp || detection.detected_at || 'N/A'}
                   </td>
                 </tr>

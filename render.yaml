@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: url-ids-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DEFAULT_ADMIN_USERNAME
+        value: "admin"
+      - key: DEFAULT_ADMIN_PASSWORD
+        sync: false
+      - key: SMTP_SERVER
+        value: "smtp.gmail.com"
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: ALERT_RECIPIENT
+        sync: false

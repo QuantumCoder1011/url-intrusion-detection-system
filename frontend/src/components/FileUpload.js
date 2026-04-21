@@ -66,12 +66,14 @@ function FileUpload({ onUpload }) {
   const isSuccess = !!uploadedFile;
 
   return (
-    <div className="card">
-      <div className="card-title">Upload File for Analysis</div>
+    <div className="cyber-card">
+      <div className="card-title">DATA INGESTION MODULE</div>
 
       {!isSuccess ? (
-        <>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="dropzone">
+          <div className="dropzone-icon">⇪</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', alignItems: 'center' }}>
+            <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--neon-cyan)' }}>AWAITING CSV / PCAP TELEMETRY UPLOAD</p>
             <input
               ref={inputRef}
               id="file-input"
@@ -80,54 +82,41 @@ function FileUpload({ onUpload }) {
               onChange={handleFileChange}
               disabled={uploading}
               style={{
-                padding: '8px',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                flex: '1',
-                minWidth: '200px',
-                backgroundColor: 'var(--bg-card)',
-                color: 'var(--text-primary)',
+                maxWidth: '300px',
+                textAlign: 'center'
               }}
             />
             <button
               className="btn btn-primary"
               onClick={handleUpload}
               disabled={uploading || !file}
-              title={file ? 'Upload and analyze' : 'Select a CSV or PCAP file first'}
+              style={{ width: '200px' }}
             >
-              {uploading ? 'Uploading...' : 'Upload CSV / PCAP File'}
+              {uploading ? 'INGESTING...' : 'INITIALIZE UPLOAD'}
             </button>
           </div>
-        </>
+        </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>
-            Uploaded: {uploadedFile.name} ({uploadedFile.type})
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '20px', border: '1px solid var(--neon-green)', backgroundColor: 'rgba(0, 255, 102, 0.05)', borderRadius: '8px' }}>
+          <span style={{ fontWeight: 500, color: 'var(--neon-green)', fontFamily: 'var(--font-mono)' }}>
+            [+] INGESTION COMPLETE: {uploadedFile.name} ({uploadedFile.type})
           </span>
           <button type="button" className="btn btn-primary" onClick={handleUploadAnother}>
-            Upload Another File
+            PROCESS ANOTHER FILE
           </button>
         </div>
       )}
 
       {message && (
-        <div
-          style={{
-            marginTop: '10px',
-            padding: '10px 12px',
-            backgroundColor: message.includes('Error') ? '#f8d7da' : '#d4edda',
-            color: message.includes('Error') ? '#721c24' : '#155724',
-            borderRadius: '6px',
-            fontSize: '14px',
-          }}
-        >
-          {message.includes('Error') ? '❌ ' : '✅ '}{message}
+        <div className="typing-text" style={{
+            marginTop: '15px',
+            color: message.includes('Error') ? 'var(--neon-red)' : 'var(--neon-green)',
+            fontFamily: 'var(--font-mono)',
+            textAlign: 'center'
+        }}>
+          {message.includes('Error') ? '[!] ' : '[+] '}{message.toUpperCase()}
         </div>
       )}
-
-      <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--text-muted)' }}>
-        Supported formats: CSV (log files), PCAP (network capture files)
-      </div>
     </div>
   );
 }
