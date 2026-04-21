@@ -8,6 +8,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+<<<<<<< HEAD
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
@@ -26,3 +27,5 @@ services:
         sync: false
       - key: ALERT_RECIPIENT
         sync: false
+=======
+>>>>>>> da6a168cae1099d95506f99fe5e56f453f839004
