@@ -25,7 +25,29 @@ CORS(app)
 # Configuration
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///detections.db'
+
+# Resilient Database Configuration:
+raw_db_url = os.environ.get('DATABASE_URL')
+if raw_db_url and (raw_db_url.startswith('postgres://') or raw_db_url.startswith('postgresql://')):
+    # SQLAlchemy requires postgresql:// instead of legacy postgres://
+    if raw_db_url.startswith('postgres://'):
+        raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+    
+    # Pre-flight check: verify that the remote database is actually reachable before crashing app
+    try:
+        from sqlalchemy import create_engine
+        test_engine = create_engine(raw_db_url, connect_args={'connect_timeout': 5})
+        with test_engine.connect() as conn:
+            pass
+        test_engine.dispose()
+        app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
+        print("[DATABASE] Successfully connected to PostgreSQL.")
+    except Exception as db_err:
+        print(f"[WARNING] Remote PostgreSQL connection failed ({db_err}). Falling back to local SQLite.")
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///detections.db'
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///detections.db'
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 TESTING_MODE = os.environ.get('TESTING_MODE', 'True').lower() == 'true'
