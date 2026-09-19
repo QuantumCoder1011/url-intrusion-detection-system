@@ -86,9 +86,9 @@ def monitor_real_time_traffic():
 # ==========================================
 @app.route('/api/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    username = data.get('username')
-    password = data.get('password')
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
+    password = (data.get('password') or '').strip()
     
     user = db.get_user_by_username(username)
     if user and db.verify_password(password, user.password_hash):

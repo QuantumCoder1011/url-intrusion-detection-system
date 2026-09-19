@@ -64,10 +64,15 @@ function App() {
     e.preventDefault();
     setAuthError('');
     try {
-      const res = await login(username, password);
+      const res = await login(username.trim(), password.trim());
       setToken(res.token);
     } catch (err) {
-      setAuthError('Invalid credentials or server offline.');
+      if (err.response && err.response.status === 401) {
+        setAuthError('Invalid credentials. Expected Operator ID: admin, Access Key: admin123');
+      } else {
+        const errorMsg = err.message || 'Connection failed';
+        setAuthError(`Backend unreachable (${errorMsg}). If using Render, please wait 30-60s for cold start or start local backend.`);
+      }
     }
   };
 
@@ -116,7 +121,7 @@ function App() {
             />
             <input 
               type="password" 
-              placeholder="Access Key" 
+              placeholder="Access Key (admin123)" 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
               style={{ padding: '12px', textAlign: 'center', letterSpacing: '2px' }}
@@ -124,7 +129,10 @@ function App() {
             <button type="submit" className="btn btn-primary" style={{ padding: '12px', marginTop: '10px' }}>
               INITIALIZE UPLINK
             </button>
-            {authError && <div style={{ color: 'var(--neon-red)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '13px' }}>[!] {authError}</div>}
+            <div style={{ color: 'var(--text-muted)', fontSize: '11px', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>
+              DEFAULT CREDENTIALS: <span style={{ color: 'var(--neon-cyan)' }}>admin</span> / <span style={{ color: 'var(--neon-cyan)' }}>admin123</span>
+            </div>
+            {authError && <div style={{ color: 'var(--neon-red)', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '12px', lineHeight: '1.4' }}>[!] {authError}</div>}
           </form>
         </div>
       </div>
